@@ -1,0 +1,32 @@
+#!/bin/bash
+
+for ARG in "$@"
+do
+	if [ $ARG == '-t' ]; then
+		echo "Installing test requirements due to provided -t..."
+		pip install -r test_requirements.txt -q
+	fi
+	if [ $ARG == '-u' ]; then
+		echo "Uninstalling any previous version of techies..."
+		# Uninstall previous version
+		pip uninstall techies -yq
+	fi
+done
+
+# Clean up
+echo "Cleaning up previous builds..."
+rm -rf 'techies.egg-info/'
+rm -rf dist/
+
+# Package
+echo "Packaging..."
+python setup.py -q sdist
+
+# Deploy
+echo "Deploying..."
+pip install dist/techies* -q
+
+# Clean up
+echo "Cleaning up builds..."
+rm -rf 'techies.egg-info/'
+rm -rf dist/
