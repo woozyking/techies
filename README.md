@@ -43,7 +43,7 @@ print(q.get())  # 'lol'
 print(q.get())  # 'dota'
 print(q.get())  # 'skyrim'
 print(q.get())  # 'dota'
-print(q.get())  # NoneType
+print(q.get())  # ''
 
 # clear the queue
 q.clear()
@@ -71,8 +71,8 @@ print(len(q))  # 3
 print(q.get())  # 'lol'
 print(q.get())  # 'dota'
 print(q.get())  # 'skyrim'
-print(q.get())  # NoneType
-print(q.get())  # NoneType
+print(q.get())  # ''
+print(q.get())  # ''
 
 # clear the queue
 q.clear()

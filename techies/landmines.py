@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from __future__ import unicode_literals
+from techies.compat import nativestr
 
 import time
 import redis
@@ -57,7 +58,7 @@ class Queue(RedisBase):
         return self.put(var, False)
 
     def get(self, block=True, timeout=None):
-        return self.conn.lpop(self.key)
+        return nativestr(self.conn.lpop(self.key) or '')
 
     def get_nowait(self):
         return self.get(False)
@@ -81,7 +82,7 @@ class UniQueue(Queue):
         return 0
 
     def get(self, block=True, timeout=None):
-        ret = None
+        ret = u''
 
         if not self.empty():
             ret = self.conn.zrange(self.key, 0, 0)[0]
@@ -89,4 +90,4 @@ class UniQueue(Queue):
         if self.conn.zscore(self.key, ret):
             self.conn.zrem(self.key, ret)
 
-        return ret
+        return nativestr(ret)

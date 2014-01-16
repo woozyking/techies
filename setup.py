@@ -9,6 +9,8 @@ try:
 except ImportError:
     from distutils.core import setup
 
+from techies import __version__
+
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
@@ -33,7 +35,7 @@ long_description = readme + '\n\n' + changes
 
 setup(
     name='techies',
-    version='0.1.0',
+    version=__version__,
     description='Opinionated Python toolbox',
     long_description=long_description,
     author='Runzhou Li (Leo)',
@@ -55,7 +57,8 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        # 'Programming Language :: Python :: 3',
-        # 'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
     ),
 )

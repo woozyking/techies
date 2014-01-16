@@ -12,6 +12,9 @@ import os
 target_path = os.path.join(os.path.dirname(__file__), '..', 'techies')
 sys.path.append(target_path)
 
+# Compat layer to support some tests
+from compat import unicode, nativestr
+
 # Test Targets
 from landmines import Queue, UniQueue
 
@@ -95,35 +98,24 @@ class QueueTest(unittest.TestCase):
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
                       for x in range(32))
         self.assertTrue(self.q.put(val))
-        self.assertEqual(self.q.conn.lpop(self.key), val)
+        self.assertEqual(nativestr(self.q.conn.lpop(self.key)), unicode(val))
 
     def test_get(self):
         # When empty
         # self.assertIsNone(self.q.get())
-        self.assertTrue(self.q.get() is None)  # 2.1 - 2.6 support
+        self.assertEqual(self.q.get(), u'')
 
         # When not empty
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
                       for x in range(32))
         self.q.conn.rpush(self.key, val)
-        self.assertEqual(self.q.get(), val)
+        self.assertEqual(self.q.get(), unicode(val))
 
     def test_put_nowait(self):
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
-        self.assertTrue(self.q.put_nowait(val))
-        self.assertEqual(self.q.conn.lpop(self.key), val)
+        self.test_put()
 
     def test_get_nowait(self):
-        # When empty
-        # self.assertIsNone(self.q.get())
-        self.assertTrue(self.q.get_nowait() is None)  # 2.1 - 2.6 support
-
-        # When not empty
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
-        self.q.conn.rpush(self.key, val)
-        self.assertEqual(self.q.get(), val)
+        self.test_get()
 
     def tearDown(self):
         self.q.conn.delete(self.key)
@@ -196,37 +188,20 @@ class UniQueueTest(QueueTest):
 
     def test_get(self):
         # When empty
-        # self.assertIsNone(self.q.get())
-        self.assertTrue(self.q.get() is None)  # 2.1 - 2.6 support
+        self.assertEqual(self.q.get(), u'')
 
         # When not empty
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
                       for x in range(32))
         self.q.conn.zadd(self.key, time.time(), val)
-        self.assertEqual(self.q.get(), val)
-
-    def test_get_nowait(self):
-        # When empty
-        # self.assertIsNone(self.q.get())
-        self.assertTrue(self.q.get_nowait() is None)  # 2.1 - 2.6 support
-
-        # When not empty
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
-        self.q.conn.zadd(self.key, time.time(), val)
-        self.assertEqual(self.q.get(), val)
+        self.assertEqual(self.q.get(), unicode(val))
 
     def test_put(self):
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
                       for x in range(32))
         self.assertTrue(self.q.put(val))
-        self.assertEqual(self.q.conn.zrange(self.key, 0, 0)[0], val)
-
-    def test_put_nowait(self):
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
-        self.assertTrue(self.q.put_nowait(val))
-        self.assertEqual(self.q.conn.zrange(self.key, 0, 0)[0], val)
+        self.assertEqual(nativestr(self.q.conn.zrange(self.key, 0, 0)[0]),
+                         unicode(val))
 
     def tearDown(self):
         self.q.conn.delete(self.key)

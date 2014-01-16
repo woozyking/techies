@@ -10,11 +10,16 @@ Opinionated Python toolbox
 
 __title__ = 'techies'
 __version__ = '0.1.0'
+VERSION = tuple(map(int, __version__.split('.')))
 __author__ = 'Runzhou Li (Leo)'
 __license__ = 'The MIT License (MIT)'
 __copyright__ = 'Runzhou Li (Leo)'
 
-from . import landmines
+from techies import landmines
+
+__all__ = [
+    'landmines'
+]
 
 # Set default logging handler to avoid "No handler found" warnings.
 import logging
