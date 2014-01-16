@@ -6,8 +6,8 @@ Opinionated Python toolbox
 List of Tools
 -------------
 
-1. Redis backed ``techies.landmines.Queue``, provides (almost) what
-   Python standard ``Queue`` provides, except that it's semi-persisted
+1. Redis backed ``techies.landmines.Queue``, (almost) Python standard
+   ``Queue`` compatible, the main difference is that it's semi-persisted
    in Redis.
 2. Redis backed ``techies.landmines.UniQueue``, a ``Queue``
    implementation that keeps only distinct items.
@@ -36,18 +36,55 @@ Usage
 
     q = Queue(key='demo_q', host='localhost', port=6379, db=0)
 
-    # put, aka enqueue
-    q.put('lol')
-    q.put('dota')
-    q.put('skyrim')
+    # put, or enqueue
+    print(q.put('lol'))  # 1L
+    print(q.put('dota'))  # 2L
+    print(q.put('skyrim'))  # 3L
+    print(q.put('dota'))  # 4L
+    # Queue.put returns the queue size at that moment
 
-    # check the size of the queue
+    # Check size of the queue, two ways
+    print(q.qsize())  # 4
+    print(len(q))  # 4
+
+    # get, or dequeue
+    print(q.get())  # 'lol'
+    print(q.get())  # 'dota'
+    print(q.get())  # 'skyrim'
+    print(q.get())  # 'dota'
+    print(q.get())  # NoneType
+
+    # clear the queue
+    q.clear()
+
+``UniQueue``
+
+.. code:: python
+
+    from techies.landmines import UniQueue
+
+    q = UniQueue(key='demo_q', host='localhost', port=6379, db=0)
+
+    # put, or enqueue
+    print(q.put('lol'))  # 1
+    print(q.put('dota'))  # 1
+    print(q.put('skyrim'))  # 1
+    print(q.put('dota'))  # 0
+    # UniQueue.put returns 1 on success, 0 otherwise; such as duplicated item
+
+    # Check size of the unique queue, two ways
     print(q.qsize())  # 3
-    # or
     print(len(q))  # 3
 
-    # get, aka dequeue
-    print(q.get())
+    # get, or dequeue
+    print(q.get())  # 'lol'
+    print(q.get())  # 'dota'
+    print(q.get())  # 'skyrim'
+    print(q.get())  # NoneType
+    print(q.get())  # NoneType
+
+    # clear the queue
+    q.clear()
 
 Test (Unit Tests)
 -----------------
