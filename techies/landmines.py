@@ -9,7 +9,7 @@ Techies' data queues
 """
 
 from __future__ import unicode_literals
-from techies.compat import nativestr
+from techies.compat import u, nativestr
 
 import time
 import redis

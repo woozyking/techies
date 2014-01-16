@@ -13,7 +13,7 @@ target_path = os.path.join(os.path.dirname(__file__), '..', 'techies')
 sys.path.append(target_path)
 
 # Compat layer to support some tests
-from compat import unicode, nativestr
+from compat import u, unicode, nativestr
 
 # Test Targets
 from landmines import Queue, UniQueue
