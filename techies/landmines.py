@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Techies' data queues
+
+:copyright: (c) 2014 Runzhou Li (Leo)
+:license: The MIT License (MIT), see LICENSE for details.
+"""
+
 from __future__ import unicode_literals
 from techies.compat import nativestr
 
