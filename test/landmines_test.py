@@ -188,7 +188,7 @@ class UniQueueTest(QueueTest):
 
     def test_get(self):
         # When empty
-        self.assertEqual(self.q.get(), u'')
+        self.assertEqual(self.q.get(), unicode())
 
         # When not empty
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
