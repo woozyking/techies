@@ -3,6 +3,8 @@ techies
 
 Opinionated Python toolbox
 
+Master branch: |Build Status|
+
 List of Tools
 -------------
 
@@ -52,7 +54,7 @@ Usage
     print(q.get())  # 'dota'
     print(q.get())  # 'skyrim'
     print(q.get())  # 'dota'
-    print(q.get())  # NoneType
+    print(q.get())  # ''
 
     # clear the queue
     q.clear()
@@ -80,8 +82,8 @@ Usage
     print(q.get())  # 'lol'
     print(q.get())  # 'dota'
     print(q.get())  # 'skyrim'
-    print(q.get())  # NoneType
-    print(q.get())  # NoneType
+    print(q.get())  # ''
+    print(q.get())  # ''
 
     # clear the queue
     q.clear()
@@ -103,3 +105,6 @@ License
 
 The MIT License (MIT). See the full
 `LICENSE <https://github.com/woozyking/techies/blob/master/LICENSE>`__.
+
+.. |Build Status| image:: https://travis-ci.org/woozyking/techies.png?branch=master
+   :target: https://travis-ci.org/woozyking/techies
