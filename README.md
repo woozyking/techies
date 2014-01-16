@@ -2,6 +2,8 @@
 
 Opinionated Python toolbox
 
+Master branch: [![Build Status](https://travis-ci.org/woozyking/techies.png?branch=master)](https://travis-ci.org/woozyking/techies)
+
 ## List of Tools
 
 1. Redis backed `techies.landmines.Queue`, (almost) Python standard `Queue` compatible, the main difference is that it's semi-persisted in Redis.

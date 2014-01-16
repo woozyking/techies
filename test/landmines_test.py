@@ -13,7 +13,7 @@ target_path = os.path.join(os.path.dirname(__file__), '..', 'techies')
 sys.path.append(target_path)
 
 # Compat layer to support some tests
-from compat import u, unicode, nativestr
+from compat import unicode, nativestr
 
 # Test Targets
 from landmines import Queue, UniQueue
@@ -103,7 +103,7 @@ class QueueTest(unittest.TestCase):
     def test_get(self):
         # When empty
         # self.assertIsNone(self.q.get())
-        self.assertEqual(self.q.get(), u'')
+        self.assertEqual(self.q.get(), unicode())
 
         # When not empty
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)

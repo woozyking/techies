@@ -9,7 +9,7 @@ Techies' data queues
 """
 
 from __future__ import unicode_literals
-from techies.compat import u, nativestr
+from techies.compat import unicode, nativestr
 
 import time
 import redis
@@ -90,7 +90,7 @@ class UniQueue(Queue):
         return 0
 
     def get(self, block=True, timeout=None):
-        ret = u''
+        ret = unicode()
 
         if not self.empty():
             ret = self.conn.zrange(self.key, 0, 0)[0]
