@@ -66,7 +66,7 @@ class Queue(RedisBase):
         return self.put(var, False)
 
     def get(self, block=True, timeout=None):
-        return nativestr(self.conn.lpop(self.key) or '')
+        return unicode(nativestr(self.conn.lpop(self.key) or ''))
 
     def get_nowait(self):
         return self.get(False)
@@ -98,4 +98,4 @@ class UniQueue(Queue):
         if self.conn.zscore(self.key, ret):
             self.conn.zrem(self.key, ret)
 
-        return nativestr(ret)
+        return unicode(nativestr(ret))
