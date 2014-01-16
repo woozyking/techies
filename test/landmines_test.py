@@ -98,7 +98,8 @@ class QueueTest(unittest.TestCase):
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
                       for x in range(32))
         self.assertTrue(self.q.put(val))
-        self.assertEqual(nativestr(self.q.conn.lpop(self.key)), unicode(val))
+        self.assertEqual(unicode(nativestr(self.q.conn.lpop(self.key))),
+                         unicode(val))
 
     def test_get(self):
         # When empty
@@ -200,8 +201,10 @@ class UniQueueTest(QueueTest):
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
                       for x in range(32))
         self.assertTrue(self.q.put(val))
-        self.assertEqual(nativestr(self.q.conn.zrange(self.key, 0, 0)[0]),
-                         unicode(val))
+        self.assertEqual(
+            unicode(nativestr(self.q.conn.zrange(self.key, 0, 0)[0])),
+            unicode(val)
+        )
 
     def tearDown(self):
         self.q.conn.delete(self.key)
