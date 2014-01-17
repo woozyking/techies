@@ -16,7 +16,7 @@ sys.path.append(target_path)
 from compat import unicode, nativestr
 
 # Test Targets
-from landmines import Queue, UniQueue
+from landmines import Queue, UniQueue, CountQueue
 
 
 class QueueTest(unittest.TestCase):
@@ -97,7 +97,7 @@ class QueueTest(unittest.TestCase):
     def test_put(self):
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
                       for x in range(32))
-        self.assertTrue(self.q.put(val))
+        self.q.put(val)
         self.assertEqual(unicode(nativestr(self.q.conn.lpop(self.key))),
                          unicode(val))
 
@@ -200,7 +200,7 @@ class UniQueueTest(QueueTest):
     def test_put(self):
         val = ''.join(random.choice(string.ascii_uppercase + string.digits)
                       for x in range(32))
-        self.assertTrue(self.q.put(val))
+        self.q.put(val)
         self.assertEqual(
             unicode(nativestr(self.q.conn.zrange(self.key, 0, 0)[0])),
             unicode(val)
@@ -208,3 +208,30 @@ class UniQueueTest(QueueTest):
 
     def tearDown(self):
         self.q.conn.delete(self.key)
+
+
+class CountQueueTest(UniQueueTest):
+
+    def setUp(self):
+        self.key = 'test_q'
+        self.q = CountQueue(key=self.key, host='localhost', port=6379, db=0)
+        self.q.conn.delete(self.key)
+
+    def test_get(self):
+        # When empty
+        self.assertEqual(self.q.get(), unicode())
+
+        # When not empty
+        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                      for x in range(32))
+        self.q.conn.zincrby(self.key, val, 1.0)
+        self.assertEqual(self.q.get(), unicode(val))
+
+    def test_put(self):
+        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                      for x in range(32))
+        self.q.put(val)
+        self.assertEqual(
+            unicode(nativestr(self.q.conn.zrevrange(self.key, 0, 0)[0])),
+            unicode(val)
+        )
