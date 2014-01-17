@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Techies' data queues
+Techies' landmines
 
 :copyright: (c) 2014 Runzhou Li (Leo)
 :license: The MIT License (MIT), see LICENSE for details.
@@ -35,7 +35,9 @@ class RedisBase(object):
 class Queue(RedisBase):
 
     '''
-    A minimum data queue, based on Redis List
+    Queue, based on Redis List
+
+    Interfaces are almost standard queue compatible
     '''
 
     def initialize(self):
@@ -60,24 +62,25 @@ class Queue(RedisBase):
         return self.qsize()
 
     def put(self, var, block=True, timeout=None):
-        return self.conn.rpush(self.key, var)
+        self.conn.rpush(self.key, var)
 
     def put_nowait(self, var):
-        return self.put(var, False)
+        self.put(var, block=False)
 
     def get(self, block=True, timeout=None):
         return unicode(nativestr(self.conn.lpop(self.key) or ''))
 
     def get_nowait(self):
-        return self.get(False)
+        return self.get(block=False)
 
 
 class UniQueue(Queue):
 
     '''
-    An unique data queue, based on Redis Sorted Set
+    Unique Queue, based on Redis Sorted Set
 
-    Data in this queue are unique
+    Inherits Queue but ignores repetitive items, keeps items unique. Score of
+    the sorted set member is epoch timestamp from time.time()
     '''
 
     def qsize(self):
@@ -85,17 +88,39 @@ class UniQueue(Queue):
 
     def put(self, var, block=True, timeout=None):
         if not self.conn.zscore(self.key, var):
-            return self.conn.zadd(self.key, time.time(), var)
-
-        return 0
+            self.conn.zadd(self.key, time.time(), var)
 
     def get(self, block=True, timeout=None):
-        ret = unicode()
+        if self.empty():
+            return unicode()
 
-        if not self.empty():
-            ret = self.conn.zrange(self.key, 0, 0)[0]
+        ret = self.conn.zrange(self.key, 0, 0)[0]
 
-        if self.conn.zscore(self.key, ret):
-            self.conn.zrem(self.key, ret)
+        # Pop it out
+        self.conn.zrem(self.key, ret)
+
+        return unicode(nativestr(ret))
+
+
+class CountQueue(UniQueue):
+
+    '''
+    Count Queue, based on Redis Sorted Set
+
+    Inherits UniQueue but score is used as a count of item appearance, that
+    the item has the highest count gets placed in front to be get() first
+    '''
+
+    def put(self, var, block=True, timeout=None):
+        self.conn.zincrby(self.key, var, 1.0)
+
+    def get(self, block=True, timeout=None):
+        if self.empty():
+            return unicode()
+
+        ret = self.conn.zrevrange(self.key, 0, 0)[0]
+
+        # Pop it out
+        self.conn.zrem(self.key, ret)
 
         return unicode(nativestr(ret))

@@ -8,16 +8,24 @@ Master branch: |Build Status|
 List of Tools
 -------------
 
-1. Redis backed ``techies.landmines.Queue``, (almost) Python standard
-   ``Queue`` compatible, the main difference is that it's semi-persisted
-   in Redis.
-2. Redis backed ``techies.landmines.UniQueue``, a ``Queue``
-   implementation that keeps only distinct items.
+``Queue`` Implementations (backed by Redis)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. ``techies.landmines.Queue``, based on Redis List. Interfaces are
+   almost standard queue compatible.
+2. ``techies.landmines.UniQueue``, based on Redis Sorted Set. Inherits
+   ``techies.landmines.Queue`` but ignores repetitive items, keeps items
+   unique. Score of the sorted set member is epoch timestamp from
+   ``time.time()``.
+3. ``techies.landmines.CountQueue``, based on Redis Sorted Set. Inherits
+   ``techies.landmines.UniQueue`` but score is used as a count of item
+   appearance, that the item has the highest count gets placed in front
+   to be ``get`` first
 
 Prerequisites
 -------------
 
--  Redis server
+-  Redis server for ``Queue`` implementations
 
 Installation
 ------------
@@ -31,6 +39,7 @@ Usage
 -----
 
 ``Queue``
+~~~~~~~~~
 
 .. code:: python
 
@@ -39,11 +48,10 @@ Usage
     q = Queue(key='demo_q', host='localhost', port=6379, db=0)
 
     # put, or enqueue
-    print(q.put('lol'))  # 1L
-    print(q.put('dota'))  # 2L
-    print(q.put('skyrim'))  # 3L
-    print(q.put('dota'))  # 4L
-    # Queue.put returns the queue size at that moment
+    q.put('lol')
+    q.put('dota')
+    q.put('skyrim')
+    q.put('dota')
 
     # Check size of the queue, two ways
     print(q.qsize())  # 4
@@ -60,6 +68,7 @@ Usage
     q.clear()
 
 ``UniQueue``
+~~~~~~~~~~~~
 
 .. code:: python
 
@@ -68,11 +77,10 @@ Usage
     q = UniQueue(key='demo_q', host='localhost', port=6379, db=0)
 
     # put, or enqueue
-    print(q.put('lol'))  # 1
-    print(q.put('dota'))  # 1
-    print(q.put('skyrim'))  # 1
-    print(q.put('dota'))  # 0
-    # UniQueue.put returns 1 on success, 0 otherwise; such as duplicated item
+    q.put('lol')
+    q.put('dota')
+    q.put('skyrim')
+    q.put('dota')  # this one is ignored
 
     # Check size of the unique queue, two ways
     print(q.qsize())  # 3
@@ -82,8 +90,35 @@ Usage
     print(q.get())  # 'lol'
     print(q.get())  # 'dota'
     print(q.get())  # 'skyrim'
-    print(q.get())  # ''
-    print(q.get())  # ''
+    print(q.get())  # ''  # only 3 unique items
+
+    # clear the queue
+    q.clear()
+
+``CountQueue``
+~~~~~~~~~~~~~~
+
+.. code:: python
+
+    from techies.landmines import CountQueue
+
+    q = CountQueue(key='demo_q', host='localhost', port=6379, db=0)
+
+    # put, or enqueue
+    q.put('lol')
+    q.put('dota')
+    q.put('skyrim')
+    q.put('dota')  # increment the count of the existing 'dota'
+
+    # Check size of the unique queue, two ways
+    print(q.qsize())  # 3
+    print(len(q))  # 3
+
+    # get, or dequeue
+    print(q.get())  # 'dota'  # the one with the most count is returned first
+    print(q.get())  # 'lol'
+    print(q.get())  # 'skyrim'
+    print(q.get())  # ''  # only 3 unique items still
 
     # clear the queue
     q.clear()
