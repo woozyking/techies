@@ -40,7 +40,7 @@ class QueueHandler(Handler):
         if sys.version_info[:2] > (2, 6):
             super(QueueHandler, self).__init__(level)
         else:
-            Handler.__init__(level)
+            Handler.__init__(self, level)
 
         self.q = q
 
