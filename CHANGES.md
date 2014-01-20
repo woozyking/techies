@@ -4,7 +4,7 @@
 
 * Added `QueueHandler`, inherits standard `logging.Handler` that `emit` to any standard `Queue` compatible implementations, including all the `Queue` implementations in this library
 * Exposed accessibility of all classes (`Queue` implementations and `logging.Handler` implementations to bypass module namespace)
-* Behavior of `CounterQueue.get` has changed from just returning the item value to a `tuple` of item value and its number of appearances in the queue, eg: `('dota', 2)`; an empty `tuple` is returned when the `CounterQueue` is empty
+* Behavior of `CountQueue.get` has changed from just returning the item value to a `tuple` of item value and its number of appearances in the queue, eg: `('dota', 2)`; an empty `tuple` is returned when the `CountQueue` is empty
 
 ### 0.1.2 (2014-01-17)
 

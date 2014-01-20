@@ -114,27 +114,46 @@ q.clear()
 ### QueueHandler
 
 ```
-from techies import QueueHandler, REF_LOG_FORMAT
+import logging
+from techies import (
+    Queue, UniQueue, CountQueue, QueueHandler, REF_LOG_FORMAT
+)
+from techies.compat import xrange
 
-key = 'test_q'
-q = Queue(key=key, host='localhost', port=6379, db=0)
-uq = UniQueue(key=key, host='localhost', port=6379, db=1)
-cq = CountQueue(key=key, host='localhost', port=6379, db=2)
+if __name__ == '__main__':
+    key = 'test_q'
+    q = Queue(key=key, host='localhost', port=6379, db=0)
+    uq = UniQueue(key=key, host='localhost', port=6379, db=1)
+    cq = CountQueue(key=key, host='localhost', port=6379, db=2)
 
-logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
 
-for q in [q, uq, cq]:
-    handler = QueueHandler(q)
-    handler.setFormatter(logging.Formatter(REF_LOG_FORMAT))
-    logger.addHandler(handler)
+    for i in [q, uq, cq]:
+        handler = QueueHandler(i)
+        handler.setFormatter(logging.Formatter(REF_LOG_FORMAT))
+        logger.addHandler(handler)
 
-# Enqueue multiple times of the same error
-for i in xrange(3):
-    try:
-        1 / 0
-    except ZeroDivisionError as e:
-        logger.error(e)
+    # Enqueue multiple times of the same error
+    for i in xrange(3):
+        try:
+            1 / 0
+        except ZeroDivisionError as e:
+            logger.error(e)
 
+    # simple queue, should print error log 3 times
+    while len(q):
+        print(q.get())
+
+    # unique queue, should just have 1 item in this case
+    print(len(uq) == 1)
+    print(uq.get())
+
+    # count queue, should just have 1 item as unique queue
+    print(len(cq) == 1)
+    print(cq.get()[1])  # 3, the count of the same item
+
+    for i in [q, uq, cq]:
+        i.clear()
 ```
 
 ## Test (Unit Tests)

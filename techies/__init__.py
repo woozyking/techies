@@ -20,12 +20,12 @@ from techies.landmines import (
 )
 
 from techies.stasistrap import (
-    QueueHandler
+    QueueHandler, REF_LOG_FORMAT
 )
 
 __all__ = [
     'Queue', 'UniQueue', 'CountQueue',
-    'QueueHandler'
+    'QueueHandler', 'REF_LOG_FORMAT'
 ]
 
 # Set default logging handler to avoid "No handler found" warnings.
