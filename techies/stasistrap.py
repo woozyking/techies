@@ -8,6 +8,7 @@ Techies' Stasis Trap
 :license: The MIT License (MIT), see LICENSE for details.
 """
 
+import sys
 from logging import Handler, NOTSET
 
 _ref_atributes = [
@@ -36,7 +37,11 @@ class QueueHandler(Handler):
     '''
 
     def __init__(self, q, level=NOTSET):
-        super(QueueHandler, self).__init__(level)
+        if sys.version_info[:2] > (2, 6):
+            super(QueueHandler, self).__init__(level)
+        else:
+            Handler.__init__(level)
+
         self.q = q
 
     def emit(self, record):
