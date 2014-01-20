@@ -8,9 +8,13 @@ Master branch: [![Build Status](https://travis-ci.org/woozyking/techies.png?bran
 
 ### `Queue` Implementations (backed by Redis)
 
-1. `techies.landmines.Queue`, based on Redis List. Interfaces are almost standard queue compatible.
-2. `techies.landmines.UniQueue`, based on Redis Sorted Set. Inherits `techies.landmines.Queue` but ignores repetitive items, keeps items unique. Score of the sorted set member is epoch timestamp from `time.time()`.
-3. `techies.landmines.CountQueue`, based on Redis Sorted Set. Inherits `techies.landmines.UniQueue` but score is used as a count of item appearance, that the item has the highest count gets placed in front to be `get` first
+1. `techies.Queue`, based on Redis List. Interfaces are almost standard queue compatible.
+2. `techies.UniQueue`, based on Redis Sorted Set. Inherits `techies.Queue` but ignores repetitive items, keeps items unique. Score of the sorted set member is epoch timestamp from `time.time()`.
+3. `techies.CountQueue`, based on Redis Sorted Set. Inherits `techies.UniQueue` but score is used as a count of item appearance, that the item has the highest count gets placed in front to be `get` first.
+
+### `logging.Handler` Implementation
+
+1. `techies.QueueHandler`, inherits standard `logging.Handler` that `emit` to any standard `Queue` compatible implementations, including all the `Queue` implementations in this library.
 
 ## Prerequisites
 
@@ -28,7 +32,7 @@ $ pip install techies --upgrade  # to update
 ### `Queue`
 
 ```python
-from techies.landmines import Queue
+from techies import Queue
 
 q = Queue(key='demo_q', host='localhost', port=6379, db=0)
 
@@ -56,7 +60,7 @@ q.clear()
 ### `UniQueue`
 
 ```python
-from techies.landmines import UniQueue
+from techies import UniQueue
 
 q = UniQueue(key='demo_q', host='localhost', port=6379, db=0)
 
@@ -83,7 +87,7 @@ q.clear()
 ### `CountQueue`
 
 ```python
-from techies.landmines import CountQueue
+from techies import CountQueue
 
 q = CountQueue(key='demo_q', host='localhost', port=6379, db=0)
 
@@ -98,13 +102,39 @@ print(q.qsize())  # 3
 print(len(q))  # 3
 
 # get, or dequeue
-print(q.get())  # 'dota'  # the one with the most count is returned first
-print(q.get())  # 'lol'
-print(q.get())  # 'skyrim'
-print(q.get())  # ''  # only 3 unique items still
+print(q.get())  # ('dota', 2)  # the one with the most count is returned first
+print(q.get())  # ('lol', 1)
+print(q.get())  # ('skyrim', 1)
+print(q.get())  # ()  # only 3 unique items still
 
 # clear the queue
 q.clear()
+```
+
+### QueueHandler
+
+```
+from techies import QueueHandler, REF_LOG_FORMAT
+
+key = 'test_q'
+q = Queue(key=key, host='localhost', port=6379, db=0)
+uq = UniQueue(key=key, host='localhost', port=6379, db=1)
+cq = CountQueue(key=key, host='localhost', port=6379, db=2)
+
+logger = logging.getLogger(__name__)
+
+for q in [q, uq, cq]:
+    handler = QueueHandler(q)
+    handler.setFormatter(logging.Formatter(REF_LOG_FORMAT))
+    logger.addHandler(handler)
+
+# Enqueue multiple times of the same error
+for i in xrange(3):
+    try:
+        1 / 0
+    except ZeroDivisionError as e:
+        logger.error(e)
+
 ```
 
 ## Test (Unit Tests)

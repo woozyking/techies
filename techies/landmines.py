@@ -9,7 +9,9 @@ Techies' landmines
 """
 
 from __future__ import unicode_literals
-from techies.compat import unicode, nativestr
+from techies.compat import (
+    unicode, nativestr
+)
 
 import time
 import redis
@@ -112,15 +114,16 @@ class CountQueue(UniQueue):
     '''
 
     def put(self, var, block=True, timeout=None):
-        self.conn.zincrby(self.key, var, 1.0)
+        self.conn.zincrby(self.key, var, 1)
 
     def get(self, block=True, timeout=None):
         if self.empty():
-            return unicode()
+            return ()
 
-        ret = self.conn.zrevrange(self.key, 0, 0)[0]
+        ret = self.conn.zrevrange(self.key, 0, 0, withscores=True,
+                                  score_cast_func=int)[0]
 
         # Pop it out
-        self.conn.zrem(self.key, ret)
+        self.conn.zrem(self.key, ret[0])
 
-        return unicode(nativestr(ret))
+        return unicode(nativestr(ret[0])), ret[1]

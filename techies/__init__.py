@@ -9,16 +9,23 @@ Opinionated Python toolbox
 """
 
 __title__ = 'techies'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 VERSION = tuple(map(int, __version__.split('.')))
 __author__ = 'Runzhou Li (Leo)'
 __license__ = 'The MIT License (MIT)'
 __copyright__ = 'Runzhou Li (Leo)'
 
-from techies import landmines
+from techies.landmines import (
+    Queue, UniQueue, CountQueue
+)
+
+from techies.stasistrap import (
+    QueueHandler
+)
 
 __all__ = [
-    'landmines'
+    'Queue', 'UniQueue', 'CountQueue',
+    'QueueHandler'
 ]
 
 # Set default logging handler to avoid "No handler found" warnings.

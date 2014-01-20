@@ -3,7 +3,6 @@
 
 import unittest
 import random
-import string
 import time
 
 import sys
@@ -13,7 +12,9 @@ target_path = os.path.join(os.path.dirname(__file__), '..', 'techies')
 sys.path.append(target_path)
 
 # Compat layer to support some tests
-from compat import unicode, nativestr
+from compat import (
+    unicode, nativestr, xrange
+)
 
 # Test Targets
 from landmines import Queue, UniQueue, CountQueue
@@ -95,11 +96,10 @@ class QueueTest(unittest.TestCase):
         self.assertFalse(self.q.empty())
 
     def test_put(self):
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
+        val = unicode('tidehunter is going to eat you alive')
         self.q.put(val)
         self.assertEqual(unicode(nativestr(self.q.conn.lpop(self.key))),
-                         unicode(val))
+                         val)
 
     def test_get(self):
         # When empty
@@ -107,10 +107,9 @@ class QueueTest(unittest.TestCase):
         self.assertEqual(self.q.get(), unicode())
 
         # When not empty
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
+        val = unicode('tidehunter is going to eat you alive')
         self.q.conn.rpush(self.key, val)
-        self.assertEqual(self.q.get(), unicode(val))
+        self.assertEqual(self.q.get(), val)
 
     def test_put_nowait(self):
         self.test_put()
@@ -192,19 +191,30 @@ class UniQueueTest(QueueTest):
         self.assertEqual(self.q.get(), unicode())
 
         # When not empty
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
+        val = unicode('tidehunter is going to eat you alive')
         self.q.conn.zadd(self.key, time.time(), val)
-        self.assertEqual(self.q.get(), unicode(val))
+        self.assertEqual(self.q.get(), val)
 
     def test_put(self):
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
+        val = unicode('tidehunter is going to eat you alive')
         self.q.put(val)
         self.assertEqual(
             unicode(nativestr(self.q.conn.zrange(self.key, 0, 0)[0])),
-            unicode(val)
+            val
         )
+
+        # Uniqueness test
+        times = random.randint(3, 10)
+
+        for i in xrange(times):
+            self.q.put(val)
+
+        self.assertEqual(
+            unicode(nativestr(self.q.conn.zrange(self.key, 0, 0)[0])),
+            val
+        )
+        self.q.conn.zrem(self.key, val)
+        self.assertEqual(self.q.conn.zcard(self.key), 0)
 
     def tearDown(self):
         self.q.conn.delete(self.key)
@@ -218,20 +228,38 @@ class CountQueueTest(UniQueueTest):
         self.q.conn.delete(self.key)
 
     def test_get(self):
-        # When empty
-        self.assertEqual(self.q.get(), unicode())
-
-        # When not empty
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
-        self.q.conn.zincrby(self.key, val, 1.0)
-        self.assertEqual(self.q.get(), unicode(val))
+        self.assertEqual(self.q.get(), ())
+        val = unicode('tidehunter is going to eat you alive')
+        self.q.conn.zincrby(self.key, val, 1)
+        actual = self.q.get()
+        self.assertEqual(actual, (val, 1))
 
     def test_put(self):
-        val = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                      for x in range(32))
+        val = unicode('tidehunter is going to eat you alive')
         self.q.put(val)
+        actual = self.q.conn.zrevrange(self.key, 0, 0, withscores=True,
+                                       score_cast_func=int)[0]
         self.assertEqual(
-            unicode(nativestr(self.q.conn.zrevrange(self.key, 0, 0)[0])),
-            unicode(val)
+            (unicode(nativestr(actual[0])), actual[1]),
+            (val, 1)
         )
+        self.q.conn.zrem(self.key, val)
+        self.assertEqual(self.q.conn.zcard(self.key), 0)
+
+        # Uniqueness test
+        times = random.randint(3, 10)
+
+        for i in xrange(times):
+            self.q.put(val)
+
+        actual = self.q.conn.zrevrange(self.key, 0, 0, withscores=True,
+                                       score_cast_func=int)[0]
+        self.assertEqual(
+            (unicode(nativestr(actual[0])), actual[1]),
+            (val, times)
+        )
+        self.q.conn.zrem(self.key, val)
+        self.assertEqual(self.q.conn.zcard(self.key), 0)
+
+if __name__ == '__main__':
+    unittest.main()
