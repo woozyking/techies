@@ -130,8 +130,8 @@ Usage
     # clear the queue
     q.clear()
 
-QueueHandler
-~~~~~~~~~~~~
+``QueueHandler``
+~~~~~~~~~~~~~~~~
 
 .. code:: python
 

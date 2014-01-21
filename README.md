@@ -111,7 +111,7 @@ print(q.get())  # ()  # only 3 unique items still
 q.clear()
 ```
 
-### QueueHandler
+### `QueueHandler`
 
 ```python
 import logging
