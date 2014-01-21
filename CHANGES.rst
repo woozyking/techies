@@ -7,8 +7,9 @@ Changelog
 -  Added ``QueueHandler``, inherits standard ``logging.Handler`` that
    ``emit`` to any standard ``Queue`` compatible implementations,
    including all the ``Queue`` implementations in this library
--  Exposed accessibility of all classes (``Queue`` implementations and
-   ``logging.Handler`` implementations to bypass module namespace)
+-  Exposed direct accessibility of all intended APIs, for example,
+   ``from techies import Queue``; or if you will,
+   ``from techies import *``
 -  Behavior of ``CountQueue.get`` has changed from just returning the
    item value to a ``tuple`` of item value and its number of appearances
    in the queue, eg: ``('dota', 2)``; an empty ``tuple`` is returned
