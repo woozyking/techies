@@ -113,7 +113,7 @@ q.clear()
 
 ### QueueHandler
 
-```
+```python
 import logging
 from techies import (
     Queue, UniQueue, CountQueue, QueueHandler, REF_LOG_FORMAT

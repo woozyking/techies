@@ -133,7 +133,7 @@ Usage
 QueueHandler
 ~~~~~~~~~~~~
 
-::
+.. code:: python
 
     import logging
     from techies import (
