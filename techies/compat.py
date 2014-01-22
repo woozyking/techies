@@ -5,6 +5,7 @@
 # Taken from redis-py project
 
 import sys
+import collections
 
 if sys.version_info[0] < 3:
     from urlparse import urlparse
@@ -82,3 +83,16 @@ except ImportError:
 
             def _get(self):
                 return self.queue.pop()
+
+
+def unicode_data(d):
+    if isinstance(d, basestring):
+        return unicode(d)
+    elif isinstance(d, bytes):
+        return unicode(nativestr(d))
+    elif isinstance(d, collections.Mapping):
+        return dict(map(unicode_data, d.items()))
+    elif isinstance(d, collections.Iterable):
+        return type(d)(map(unicode_data, d))
+    else:
+        return d

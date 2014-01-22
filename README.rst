@@ -29,10 +29,17 @@ List of Tools
    ``emit`` to any standard ``Queue`` compatible implementations,
    including all the ``Queue`` implementations in this library.
 
+Misc Tools
+~~~~~~~~~~
+
+1. ``techies.StateCounter``, based on Redis Hash. To see an example of
+   its usage, see
+   ```tidehunter`` <https://github.com/woozyking/tidehunter#example-2-without-limit>`__.
+
 Prerequisites
 -------------
 
--  Redis server for ``Queue`` implementations
+-  Redis server for ``Queue`` implementations and ``StateCounter``.
 
 Installation
 ------------
@@ -40,7 +47,7 @@ Installation
 ::
 
     $ pip install techies
-    $ pip install techies --upgrade  # to update
+    $ pip install techies --upgrade
 
 Usage
 -----

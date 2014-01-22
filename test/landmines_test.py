@@ -17,7 +17,88 @@ from compat import (
 )
 
 # Test Targets
-from landmines import Queue, UniQueue, CountQueue
+from landmines import Queue, UniQueue, CountQueue, StateCounter
+
+
+class StateCounterTest(unittest.TestCase):
+
+    def setUp(self):
+        self.key = 'test_sc'
+        self.sc = StateCounter(key=self.key, host='localhost', port=6379,
+                               db=0)
+
+    def test_clear(self):
+        # Right after init
+        self.sc.clear()
+        self.assertEqual(int(self.sc.conn.hget(self.key, 'count')), 0)
+
+        # After having some count
+        self.sc.conn.hincrby(self.key, 'count', 1)
+        self.sc.clear()
+        self.assertEqual(int(self.sc.conn.hget(self.key, 'count')), 0)
+
+    def test_str(self):
+        self.assertEqual(str(self.sc), unicode('State 1:Count 0:Total 0'))
+
+    def test_get_state(self):
+        self.assertEqual(self.sc.get_state(), 1)
+
+    def test_get_count(self):
+        self.assertEqual(self.sc.get_count(), 0)
+
+    def test_get_total(self):
+        self.assertEqual(self.sc.get_total(), 0)
+
+    def test_get_all(self):
+        expected = {
+            unicode('count'): unicode('0'),
+            unicode('state'): unicode('1'),
+            unicode('total'): unicode('0')
+        }
+        actual = self.sc.get_all()
+
+        self.assertEqual(actual, expected)
+
+    def test_start(self):
+        self.sc.conn.hset(self.key, 'state', 0)
+        self.assertEqual(self.sc.get_state(), 0)
+        self.sc.conn.hset(self.key, 'count', 100)
+        self.assertEqual(self.sc.get_count(), 100)
+
+        self.sc.start()
+
+        self.assertEqual(self.sc.get_state(), 1)
+        self.assertEqual(self.sc.get_count(), 0)
+
+    def test_stop(self):
+        self.assertEqual(self.sc.get_state(), 1)
+        self.sc.conn.hset(self.key, 'count', 100)
+        self.assertEqual(self.sc.get_count(), 100)
+        self.assertEqual(self.sc.get_total(), 0)
+
+        self.sc.stop()
+
+        self.assertEqual(self.sc.get_state(), 0)
+        self.assertEqual(self.sc.get_count(), 0)
+        self.assertEqual(self.sc.get_total(), 100)
+
+    def test_incr(self):
+        self.assertEqual(self.sc.get_count(), 0)
+        self.sc.incr()
+        self.assertEqual(self.sc.get_count(), 1)
+
+    def test_started(self):
+        self.assertTrue(self.sc.started())
+        self.sc.stop()
+        self.assertFalse(self.sc.started())
+
+    def test_stopped(self):
+        self.assertFalse(self.sc.stopped())
+        self.sc.stop()
+        self.assertTrue(self.sc.stopped())
+
+    def tearDown(self):
+        self.sc.conn.delete(self.key)
 
 
 class QueueTest(unittest.TestCase):

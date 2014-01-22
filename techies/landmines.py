@@ -10,7 +10,7 @@ Techies' landmines
 
 from __future__ import unicode_literals
 from techies.compat import (
-    unicode, nativestr
+    unicode, nativestr, unicode_data
 )
 
 import time
@@ -32,6 +32,75 @@ class RedisBase(object):
     def clear(self):
         self.conn.delete(self.key)
         self.initialize()
+
+
+class StateCounter(RedisBase):
+
+    '''
+    A state counter, based on Redis Hash
+
+    Hash fields:
+        state: 1 or 0 (on or off, respectively)
+        count: positive int value (current count)
+        total: positive int value (total count since init)
+    '''
+
+    def __str__(self):
+        ret = u'State {0}:Count {1}:Total {2}'
+        ret = ret.format(self.get_state(), self.get_count(), self.get_total())
+
+        return ret
+
+    def __unicode__(self):
+        return self.__str__()
+
+    def initialize(self):
+        if not self.conn.exists(self.key):
+            self.start()
+            self.conn.hset(self.key, 'total', 0)
+
+    def get_state(self):
+        val = self.conn.hget(self.key, 'state') or 0
+
+        return int(val)
+
+    def get_count(self):
+        val = self.conn.hget(self.key, 'count') or 0
+
+        return int(val)
+
+    def get_total(self):
+        val = self.conn.hget(self.key, 'total') or 0
+
+        return int(val)
+
+    def get_all(self):
+        return unicode_data(self.conn.hgetall(self.key))
+
+    def start(self):
+        if self.stopped():
+            self._count2total()
+            self.conn.hset(self.key, 'state', 1)
+
+    def stop(self):
+        self._count2total()
+        self.conn.hset(self.key, 'state', 0)
+
+    def _count2total(self):
+        self.conn.hincrby(self.key, 'total', self.get_count())
+        self.conn.hset(self.key, 'count', 0)
+
+    def incr(self, force=True):
+        if self.stopped():
+            self.start()
+
+        self.conn.hincrby(self.key, 'count', 1)
+
+    def started(self):
+        return bool(self.get_state())
+
+    def stopped(self):
+        return not self.started()
 
 
 class Queue(RedisBase):

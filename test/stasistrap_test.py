@@ -22,9 +22,6 @@ from landmines import (
     Queue, UniQueue, CountQueue
 )
 
-# Reference logging format to be used
-from stasistrap import REF_LOG_FORMAT
-
 # Test Targets
 from stasistrap import (
     QueueHandler
@@ -43,7 +40,8 @@ class QueueHandlerTest(unittest.TestCase):
 
         for q in [self.q, self.uq, self.cq]:
             handler = QueueHandler(q)
-            handler.setFormatter(logging.Formatter(REF_LOG_FORMAT))
+            _format = '%(levelname)s:%(message)s'
+            handler.setFormatter(logging.Formatter(_format))
             self.logger.addHandler(handler)
 
     def test_emit(self):
@@ -59,8 +57,7 @@ class QueueHandlerTest(unittest.TestCase):
 
         expected = unicode(':').join(
             [
-                'ERROR', __name__, __file__, 'stasistrap_test',
-                'test_emit', '58', msg
+                'ERROR', msg
             ]
         )
 

@@ -9,14 +9,14 @@ Opinionated Python toolbox
 """
 
 __title__ = 'techies'
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 VERSION = tuple(map(int, __version__.split('.')))
 __author__ = 'Runzhou Li (Leo)'
 __license__ = 'The MIT License (MIT)'
 __copyright__ = 'Runzhou Li (Leo)'
 
 from techies.landmines import (
-    Queue, UniQueue, CountQueue
+    Queue, UniQueue, CountQueue, StateCounter
 )
 
 from techies.stasistrap import (
@@ -24,7 +24,7 @@ from techies.stasistrap import (
 )
 
 __all__ = [
-    'Queue', 'UniQueue', 'CountQueue',
+    'Queue', 'UniQueue', 'CountQueue', 'StateCounter',
     'QueueHandler', 'REF_LOG_FORMAT'
 ]
 
