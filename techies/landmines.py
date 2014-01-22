@@ -46,7 +46,7 @@ class StateCounter(RedisBase):
     '''
 
     def __str__(self):
-        ret = u'State {0}:Count {1}:Total {2}'
+        ret = unicode('State {0}:Count {1}:Total {2}')
         ret = ret.format(self.get_state(), self.get_count(), self.get_total())
 
         return ret
