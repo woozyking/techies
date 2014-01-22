@@ -3,6 +3,7 @@
 ### 0.1.4 (2014-01-22)
 
 * Added `StateCounter`, a state counter based on Redis `Hash`. To see an example of its usage, see [`tidehunter`](https://github.com/woozyking/tidehunter#example-2-without-limit).
+* Included `hiredis` in requirements.txt for added performance gain.
 
 ### 0.1.3 (2014-01-20)
 
