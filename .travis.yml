@@ -13,5 +13,4 @@ script:
 - nosetests --with-coverage --cover-package=techies
 - chmod u+x deploy
 - ./deploy
-- ./deploy -u
 - pip uninstall techies -yq
