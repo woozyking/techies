@@ -18,7 +18,7 @@ Master branch: [![Build Status](https://travis-ci.org/woozyking/techies.png?bran
 
 ### Misc Tools
 
-1. `techies.StateCounter`, based on Redis Hash. To see an example of its usage, see [`tidehunter`](https://github.com/woozyking/tidehunter#example-2-without-limit).
+1. `techies.StateCounter`, based on Redis Hash. To see an example of its usage, see [tidehunter](https://github.com/woozyking/tidehunter#example-2-without-limit).
 
 ## Prerequisites
 
