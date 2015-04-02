@@ -16,28 +16,107 @@ from techies.compat import (
 import time
 import redis
 
+try:
+    import simplejson as json
+except:
+    import json
+
 
 class RedisBase(object):
 
-    def __init__(self, key, host='localhost', port=6379, db=0):
+    def __init__(self, key, host='localhost', port=6379, db=0, **kwargs):
         pool = redis.ConnectionPool(host=host, port=port, db=db)
         self.conn = redis.StrictRedis(connection_pool=pool)
         self.key = key
 
-        self.initialize()
+        self.initialize(**kwargs)
 
-    def initialize(self):
+    def initialize(self, **kwargs):
         raise NotImplementedError  # pragma: no cover
 
     def clear(self):
         self.conn.delete(self.key)
         self.initialize()
 
+    def get_all(self):
+        return unicode_data(self.conn.hgetall(self.key))
+
+
+class MultiCounter(RedisBase):
+
+    '''
+    A stateless multi-event counter, based on Redis Hash
+
+    Hash fields:
+        event_1: positive int value
+        event_2: positive int value
+        ...
+        event_N: positive int value
+    '''
+
+    def __str__(self):
+        return json.dumps(
+            unicode_data(self.get_all()), ensure_ascii=False
+        )
+
+    def __unicode__(self):
+        return self.__str__()
+
+    def get_count(self, field):
+        return int(self.conn.hget(self.key, field) or 0)
+
+    def incr(self, field):
+        self.conn.hincrby(self.key, field, 1)
+
+
+class TsCounter(RedisBase):
+
+    '''
+    A stateless multi-event timestamp counter, based on Redis Hash
+
+    Inherits MultiCounter, but instead of using only one key, it bundles
+    timestamps of the same chunk. Therefore conceptually the user passes
+    in a seed instead of a key in constructor. In initialize(), user can
+    define chunk size in order to group timestamps under different redis
+    keys with a format of <seed>:<chunk>; user can also pass in a TTL
+    for these keys to make the mechanism overall memory efficient.
+
+    The chunk is calculated as <timestamp> - <timestamp> % <chunk_size>
+
+    Hash fields:
+        timestamp_1: positive int value
+        timestamp_2: positive int value
+        ...
+        timestamp_N: positive int value
+    '''
+
+    def initialize(self, **kwargs):
+        # default chunk_size is 86400 seconds (1 day)
+        self.chunk_size = kwargs.get('chunk_size', 86400)
+        # default ttl is chunk_size * 2
+        self.ttl = kwargs.get('ttl', self.chunk_size * 2)
+
+    def get_count(self, timestamp):
+        timestamp = int(timestamp)
+        key = '{0}:{1}'.format(
+            self.key, timestamp - timestamp % self.chunk_size
+        )
+
+        return int(self.conn.hget(key, timestamp) or 0)
+
+    def incr(self, timestamp):
+        timestamp = int(timestamp)
+        chunk = timestamp - timestamp % self.chunk_size
+        key = '{0}:{1}'.format(self.key, chunk)
+
+        self.conn.hincrby(key, timestamp, 1)
+        self.conn.expireat(key, chunk + self.ttl)
+
 
 class StateCounter(RedisBase):
 
     '''
-    A state counter, based on Redis Hash
+    A single event state counter, based on Redis Hash
 
     Hash fields:
         state: 1 or 0 (on or off, respectively)
@@ -54,28 +133,19 @@ class StateCounter(RedisBase):
     def __unicode__(self):
         return self.__str__()
 
-    def initialize(self):
+    def initialize(self, **kwargs):
         if not self.conn.exists(self.key):
             self.start()
             self.conn.hset(self.key, 'total', 0)
 
     def get_state(self):
-        val = self.conn.hget(self.key, 'state') or 0
-
-        return int(val)
+        return int(self.conn.hget(self.key, 'state') or 0)
 
     def get_count(self):
-        val = self.conn.hget(self.key, 'count') or 0
-
-        return int(val)
+        return int(self.conn.hget(self.key, 'count') or 0)
 
     def get_total(self):
-        val = self.conn.hget(self.key, 'total') or 0
-
-        return int(val)
-
-    def get_all(self):
-        return unicode_data(self.conn.hgetall(self.key))
+        return int(self.conn.hget(self.key, 'total') or 0)
 
     def start(self):
         if self.stopped():
@@ -90,7 +160,7 @@ class StateCounter(RedisBase):
         self.conn.hincrby(self.key, 'total', self.get_count())
         self.conn.hset(self.key, 'count', 0)
 
-    def incr(self, force=True):
+    def incr(self):
         if self.stopped():
             self.start()
 
@@ -111,7 +181,7 @@ class Queue(RedisBase):
     Interfaces are almost standard queue compatible
     '''
 
-    def initialize(self):
+    def initialize(self, **kwargs):
         pass
 
     def qsize(self):
@@ -189,8 +259,9 @@ class CountQueue(UniQueue):
         if self.empty():
             return ()
 
-        ret = self.conn.zrevrange(self.key, 0, 0, withscores=True,
-                                  score_cast_func=int)[0]
+        ret = self.conn.zrevrange(
+            self.key, 0, 0, withscores=True, score_cast_func=int
+        )[0]
 
         # Pop it out
         self.conn.zrem(self.key, ret[0])

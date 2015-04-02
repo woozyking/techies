@@ -1,5 +1,11 @@
 ## Changelog
 
+### 0.1.5 (Not Released)
+
+* Removed `hiredis` from requirements.txt since it is not a hard requirement. Users who wish to take advantage of `hiredis` can always install it themselves.
+* Added `MultiCounter`, A stateless multi-event counter, based on Redis Hash.
+* Added `TsCounter`, a stateless timestamp counter based on Redis `Hash`, and making use of multiple keys to group timestamps, with auto expiration based on Redis key TTL mechanism.
+
 ### 0.1.4 (2014-01-22)
 
 * Added `StateCounter`, a state counter based on Redis `Hash`. To see an example of its usage, see [tidehunter](https://github.com/woozyking/tidehunter#example-2-without-limit).
