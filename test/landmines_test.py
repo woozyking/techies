@@ -150,7 +150,7 @@ class TsCounterTest(RedisHashBaseTest):
         k = '{0}:{1}'.format(self.key, c)
         ttl = c + self.obj.ttl - t
         eps = abs(self.obj.conn.ttl(k) - ttl) / float(ttl)
-        self.assertLessEqual(eps, 0.05)  # allows 5% eps
+        self.assertTrue(eps <= 0.05)  # allows 5% eps
 
     def test_clear(self):
         self.obj.clear()
