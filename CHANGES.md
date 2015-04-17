@@ -1,6 +1,6 @@
 ## Changelog
 
-### 0.2.0 (Not Released)
+### 0.2.0 (2015-04-17)
 
 * Removed `hiredis` from requirements.txt since it is not a hard requirement. Users who wish to take advantage of `hiredis` can always install it themselves, following the concept of `redis-py`.
 * Added `MultiCounter`, a stateless multi-event counter, based on Redis `Hash`.

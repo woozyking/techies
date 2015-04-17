@@ -1,8 +1,8 @@
 Changelog
 ---------
 
-0.2.0 (Not Released)
-~~~~~~~~~~~~~~~~~~~~
+0.2.0 (2015-04-17)
+~~~~~~~~~~~~~~~~~~
 
 -  Removed ``hiredis`` from requirements.txt since it is not a hard
    requirement. Users who wish to take advantage of ``hiredis`` can
