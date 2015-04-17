@@ -9,7 +9,7 @@ Opinionated Python toolbox
 """
 
 __title__ = 'techies'
-__version__ = '0.1.4'
+__version__ = '0.2.0'
 VERSION = tuple(map(int, __version__.split('.')))
 __author__ = 'Runzhou Li (Leo)'
 __license__ = 'The MIT License (MIT)'
