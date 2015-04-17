@@ -5,41 +5,10 @@ Opinionated Python toolbox
 
 Master branch: |Build Status|
 
-List of Tools
--------------
-
-``Queue`` Implementations (backed by Redis)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-1. ``techies.Queue``, based on Redis List. Interfaces are almost
-   standard queue compatible.
-2. ``techies.UniQueue``, based on Redis Sorted Set. Inherits
-   ``techies.Queue`` but ignores repetitive items, keeps items unique.
-   Score of the sorted set member is epoch timestamp from
-   ``time.time()``.
-3. ``techies.CountQueue``, based on Redis Sorted Set. Inherits
-   ``techies.UniQueue`` but score is used as a count of item appearance,
-   that the item has the highest count gets placed in front to be
-   ``get`` first.
-
-``logging.Handler`` Implementation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-1. ``techies.QueueHandler``, inherits standard ``logging.Handler`` that
-   ``emit`` to any standard ``Queue`` compatible implementations,
-   including all the ``Queue`` implementations in this library.
-
-Misc Tools
-~~~~~~~~~~
-
-1. ``techies.StateCounter``, based on Redis Hash. To see an example of
-   its usage, see
-   `tidehunter <https://github.com/woozyking/tidehunter#example-2-without-limit>`__.
-
 Prerequisites
 -------------
 
--  Redis server for ``Queue`` implementations and ``StateCounter``.
+-  Redis server for Counters and Python ``Queue`` implementations.
 
 Installation
 ------------
@@ -49,11 +18,92 @@ Installation
     $ pip install techies
     $ pip install techies --upgrade
 
-Usage
------
+In The Box
+----------
 
-``Queue``
-~~~~~~~~~
+Counters (backed by Redis)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*New in 0.2.0* ``techies.MultiCounter`` is a stateless multi-event
+counter, based on Redis ``Hash``.
+
+.. code:: python
+
+    from techies import MultiCounter
+
+    counter = MultiCounter(key='demo_counter')
+
+    counter.incr('event_1')
+    counter.incr('event_1')
+    counter.incr('event_2')
+    counter.incr('event_3')
+    counter.incr('event_2')
+
+    print(counter.get_count('event_1'))  # 2
+    print(counter.get_count('event_2'))  # 2
+    print(counter.get_count('event_3'))  # 1
+    print(counter.get_count('event_null'))  # 0
+
+    print(counter.json())  # {u'event_2': u'4', u'event_3': u'2', u'event_1': u'4'}
+    print(unicode(counter))  # {"event_2": "2", "event_3": "1", "event_1": "2"}
+    print(str(counter))  # same as above
+
+    # clears the counts
+    counter.clear()
+
+*New in 0.2.0* ``techies.TsCounter`` is a stateless multi-key,
+single-event timestamp counter, based on Redis ``Hash``.
+
+.. code:: python
+
+    from techies import TsCounter
+    import time
+
+    # initialize with chunk_size and ttl defined
+    counter = TsCounter(
+        key='demo_event',
+        chunk_size=24 * 60 * 60,
+        ttl=48 * 60 * 60
+    )
+    # or call initialize() method later to customize chunk_size and/or ttl
+    counter.initialize(chunk_size=24 * 60 * 60, ttl=48 * 60 * 60)
+
+    t = time.time()
+
+    counter.incr(timestamp=t - 86400)
+    counter.incr(timestamp=t - 86400)
+    counter.incr(timestamp=t)
+    counter.incr(timestamp=t - 86400)
+    counter.incr(timestamp=t + 86400)
+    counter.incr(timestamp=t + 86400)
+
+    print(counter.get_count(timestamp=t - 86400))  # 3
+    print(counter.get_count(timestamp=t))  # 1
+    print(counter.get_count(timestamp=t + 86400))  # 2
+
+    print(counter.json())  # {u'demo_event:1429142400': {u'1429162301': u'3'}, u'demo_event:1429228800': {u'1429248701': u'1'}, u'demo_event:1429315200': {u'1429335101': u'2'}}
+    print(unicode(counter))  # {"demo_event:1429142400": {"1429162301": "3"}, "demo_event:1429228800": {"1429248701": "1"}, "demo_event:1429315200": {"1429335101": "2"}}
+    print(str(counter))  # same as above
+
+    # clears the counts
+    counter.clear()
+
+``techies.StateCounter`` is a single event state counter, based on Redis
+``Hash``. Project
+```tidehunter`` <https://github.com/woozyking/tidehunter>`__ is built
+around the concept and APIs of this counter, you can find some extended
+usage example on its `project
+page <https://github.com/woozyking/tidehunter>`__. **Breaking API
+Changes from 0.1.4 to 0.2.0**: ``StateCounter`` now has a new behavior
+when its objects are casted by ``str`` and ``unicode``. ``get_all()`` is
+now ``json()``, and ``started`` and ``stopped`` are now properties
+instead of methods.
+
+Python ``Queue`` Implementations (backed by Redis)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``techies.Queue``, based on Redis ``List``. Interfaces are almost
+standard queue compatible.
 
 .. code:: python
 
@@ -81,8 +131,9 @@ Usage
     # clear the queue
     q.clear()
 
-``UniQueue``
-~~~~~~~~~~~~
+``techies.UniQueue``, based on Redis ``Sorted Set``. Inherits
+``techies.Queue`` but ignores repetitive items, keeps items unique.
+Score of the sorted set member is epoch timestamp from ``time.time()``.
 
 .. code:: python
 
@@ -109,8 +160,10 @@ Usage
     # clear the queue
     q.clear()
 
-``CountQueue``
-~~~~~~~~~~~~~~
+``techies.CountQueue``, based on Redis ``Sorted Set``. Inherits
+``techies.UniQueue`` but score is used as a count of item appearance,
+that the item has the highest count gets placed in front to be ``get``
+first.
 
 .. code:: python
 
@@ -137,8 +190,12 @@ Usage
     # clear the queue
     q.clear()
 
-``QueueHandler``
-~~~~~~~~~~~~~~~~
+Python ``logging.Handler`` Implementation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``techies.QueueHandler``, inherits standard ``logging.Handler`` that
+``emit`` to any standard ``Queue`` compatible implementations, including
+all the ``Queue`` implementations in this library.
 
 .. code:: python
 
@@ -187,7 +244,8 @@ Test (Unit Tests)
 -----------------
 
 To run unit tests locally, make sure that you have Redis server
-installed and running
+installed and running locally, where DB 0 is not occupied by any data
+that you cannot afford to lose.
 
 ::
 

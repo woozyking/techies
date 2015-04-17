@@ -1,6 +1,29 @@
 Changelog
 ---------
 
+0.2.0 (2015-04-17)
+~~~~~~~~~~~~~~~~~~
+
+-  Removed ``hiredis`` from requirements.txt since it is not a hard
+   requirement. Users who wish to take advantage of ``hiredis`` can
+   always install it themselves, following the concept of ``redis-py``.
+-  Added ``MultiCounter``, a stateless multi-event counter, based on
+   Redis ``Hash``.
+-  Added ``TsCounter``, a stateless timestamp counter based on Redis
+   ``Hash``, and making use of multiple keys to group timestamps, with
+   auto expiration based on Redis key TTL mechanism.
+-  **Breaking Change**: ``StateCounter`` now has a new behavior when its
+   objects are casted by ``str`` and ``unicode``. ``get_all()`` is now
+   ``json()``. This change directly reflects the underlying change
+   described in the next point. Also, ``started`` and ``stopped`` are
+   now properties instead of methods.
+-  Simplified ``techies.landmines.RedisBase`` by factoring out its new
+   child class ``techies.landmines.RedisHashBase``. All Redis Hash based
+   implementations now extends from this class to get unicode ``dict``
+   by calling ``json()`` method (previously ``get_all()``), and unicode
+   string serialization of the ``dict`` by casting the objects using
+   ``str`` or ``unicode`` (both behave exactly the same).
+
 0.1.4 (2014-01-22)
 ~~~~~~~~~~~~~~~~~~
 

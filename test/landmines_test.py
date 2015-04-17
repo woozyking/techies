@@ -3,7 +3,13 @@
 
 import unittest
 import random
+import string
 import time
+
+try:
+    import simplejson as json
+except:
+    import json
 
 import sys
 import os
@@ -13,334 +19,373 @@ sys.path.append(target_path)
 
 # Compat layer to support some tests
 from compat import (
-    unicode, nativestr, xrange
+    unicode, xrange
 )
 
+
+# test utility
+def random_key():
+    return ''.join(
+        random.SystemRandom().choice(string.ascii_uppercase) for _ in xrange(12)
+    )
+
 # Test Targets
-from landmines import Queue, UniQueue, CountQueue, StateCounter
+from landmines import (
+    RedisBase, RedisHashBase,
+    MultiCounter, TsCounter,
+    Queue, UniQueue, CountQueue, StateCounter
+)
 
 
-class StateCounterTest(unittest.TestCase):
+class RedisBaseTest(unittest.TestCase):
 
     def setUp(self):
-        self.key = 'test_sc'
-        self.sc = StateCounter(key=self.key, host='localhost', port=6379,
-                               db=0)
+        self.key = random_key()
+        self.obj = RedisBase(self.key)
+
+    def test_initialize(self):
+        self.obj.initialize()
 
     def test_clear(self):
-        # Right after init
-        self.sc.clear()
-        self.assertEqual(int(self.sc.conn.hget(self.key, 'count')), 0)
+        self.obj.clear()
+        self.assertFalse(self.obj.conn.exists(self.key))
 
-        # After having some count
-        self.sc.conn.hincrby(self.key, 'count', 1)
-        self.sc.clear()
-        self.assertEqual(int(self.sc.conn.hget(self.key, 'count')), 0)
+        self.obj.conn.set(self.key, random.randint(1, 32))
+        self.obj.clear()
+        self.assertFalse(self.obj.conn.exists(self.key))
+
+    def tearDown(self):
+        self.obj.conn.delete(self.key)
+
+
+class RedisHashBaseTest(RedisBaseTest):
+
+    def setUp(self):
+        self.key = random_key()
+        self.obj = RedisHashBase(self.key)
+
+    def test_json(self):
+        v = self.obj.json()
+        self.assertEqual(v, {})
+
+        a = random.randint(1, 10)
+        self.obj.conn.hset(self.key, 'a', a)
+        v = self.obj.json()
+        self.assertEqual(int(v.get('a')), a)
 
     def test_str(self):
-        self.assertEqual(str(self.sc), unicode('State 1:Count 0:Total 0'))
+        v = str(self.obj)
+        self.assertEqual(json.loads(v), {})
 
-    def test_get_state(self):
-        self.assertEqual(self.sc.get_state(), 1)
+        a = random.randint(1, 10)
+        self.obj.conn.hset(self.key, 'a', a)
+        v = str(self.obj)
+        self.assertEqual(int(json.loads(v).get('a')), a)
 
-    def test_get_count(self):
-        self.assertEqual(self.sc.get_count(), 0)
+    def test_unicode(self):
+        v = unicode(self.obj)
+        self.assertEqual(json.loads(v), {})
 
-    def test_get_total(self):
-        self.assertEqual(self.sc.get_total(), 0)
-
-    def test_get_all(self):
-        expected = {
-            unicode('count'): unicode('0'),
-            unicode('state'): unicode('1'),
-            unicode('total'): unicode('0')
-        }
-        actual = self.sc.get_all()
-
-        self.assertEqual(actual, expected)
-
-    def test_start(self):
-        self.sc.conn.hset(self.key, 'state', 0)
-        self.assertEqual(self.sc.get_state(), 0)
-        self.sc.conn.hset(self.key, 'count', 100)
-        self.assertEqual(self.sc.get_count(), 100)
-
-        self.sc.start()
-
-        self.assertEqual(self.sc.get_state(), 1)
-        self.assertEqual(self.sc.get_count(), 0)
-
-    def test_stop(self):
-        self.assertEqual(self.sc.get_state(), 1)
-        self.sc.conn.hset(self.key, 'count', 100)
-        self.assertEqual(self.sc.get_count(), 100)
-        self.assertEqual(self.sc.get_total(), 0)
-
-        self.sc.stop()
-
-        self.assertEqual(self.sc.get_state(), 0)
-        self.assertEqual(self.sc.get_count(), 0)
-        self.assertEqual(self.sc.get_total(), 100)
-
-    def test_incr(self):
-        self.assertEqual(self.sc.get_count(), 0)
-        self.sc.incr()
-        self.assertEqual(self.sc.get_count(), 1)
-
-    def test_started(self):
-        self.assertTrue(self.sc.started())
-        self.sc.stop()
-        self.assertFalse(self.sc.started())
-
-    def test_stopped(self):
-        self.assertFalse(self.sc.stopped())
-        self.sc.stop()
-        self.assertTrue(self.sc.stopped())
-
-    def tearDown(self):
-        self.sc.conn.delete(self.key)
+        a = random.randint(1, 10)
+        self.obj.conn.hset(self.key, 'a', a)
+        v = unicode(self.obj)
+        self.assertEqual(int(json.loads(v).get('a')), a)
 
 
-class QueueTest(unittest.TestCase):
+class MultiCounterTest(RedisHashBaseTest):
 
     def setUp(self):
-        self.key = 'test_q'
-        self.q = Queue(key=self.key, host='localhost', port=6379, db=0)
-        self.q.conn.delete(self.key)
+        self.key = random_key()
+        self.obj = MultiCounter(self.key)
+
+    def test_get_count(self):
+        v = self.obj.get_count('f1')
+        self.assertEqual(v, 0)
+
+    def test_incr(self):
+        self.obj.incr('f1')
+        v = self.obj.conn.hget(self.key, 'f1')
+        self.assertEqual(int(v), 1)
+
+
+class TsCounterTest(RedisHashBaseTest):
+
+    def setUp(self):
+        self.key = random_key()
+        self.obj = TsCounter(self.key)
+
+    def test_initialize(self):
+        if sys.version_info[:2] > (2, 6):
+            super(TsCounterTest, self).test_initialize()
+        else:
+            RedisHashBaseTest.test_initialize(self)
+
+        self.assertEqual(self.obj.chunk_size, 86400)
+        self.assertEqual(self.obj.ttl, self.obj.chunk_size * 2)
+
+        self.obj.initialize(chunk_size=3600)
+        self.assertEqual(self.obj.chunk_size, 3600)
+        self.assertEqual(self.obj.ttl, self.obj.chunk_size * 2)
+
+        self.obj.initialize(chunk_size=86400, ttl=31536000)
+        self.assertEqual(self.obj.chunk_size, 86400)
+        self.assertEqual(self.obj.ttl, 31536000)
+
+    def test_get_count(self):
+        v = self.obj.get_count()
+        self.assertEqual(v, 0)
+
+        t = time.time()
+        self.obj.incr(t)
+        v = self.obj.get_count(t)
+        self.assertEqual(v, 1)
+
+    def test_incr(self):
+        t = int(time.time())
+        self.obj.incr(t)
+        v = self.obj.get_count(t)
+        self.assertEqual(v, 1)
+
+        c = t - t % self.obj.chunk_size
+        k = '{0}:{1}'.format(self.key, c)
+        ttl = c + self.obj.ttl - t
+        eps = abs(self.obj.conn.ttl(k) - ttl) / float(ttl)
+        self.assertTrue(eps <= 0.05)  # allows 5% eps
 
     def test_clear(self):
-        # When empty
-        self.q.clear()
-        self.assertEquals(self.q.conn.llen(self.key), 0)
+        self.obj.clear()
+        self.assertEqual(self.obj._chunks(), [])
 
-        # After putting
-        self.q.conn.rpush(self.key, 'test_val')
-        self.q.clear()
-        self.assertEquals(self.q.conn.llen(self.key), 0)
+        t = time.time()
+        self.obj.incr(t - 86400)
+        self.obj.incr(t)
+        self.obj.incr(t + 86400)
+        self.obj.clear()
+        self.assertEqual(self.obj._chunks(), [])
 
-    def test__len__(self):
-        # When empty
-        self.assertEqual(len(self.q), 0)
+    def test_json(self):
+        self.assertEqual(self.obj.json(), {})
 
-        # When not empty
-        length = random.randint(1, 32)
+        t = time.time()
+        self.obj.incr(t - 86400)
+        self.obj.incr(t)
+        self.obj.incr(t + 86400)
+        v = self.obj.json()
 
-        for i in range(length):
-            self.q.conn.rpush(self.key, i)
+        for chunk in self.obj._chunks():
+            self.assertNotEqual(v.get(chunk), {})
 
-        self.assertEqual(len(self.q), length)
+    def test_str(self):
+        # todo
+        pass
 
-        # Uniqueness test
-        for i in range(length):
-            self.q.conn.rpush(self.key, i)
-
-        self.assertEqual(len(self.q), length * 2)
-
-    def test_full(self):
-        # Meaningless now
-        self.assertFalse(self.q.full())
-
-    def test_task_done(self):
-        self.q.task_done()
-
-    def test_join(self):
-        self.q.join()
-
-    def test_qsize(self):
-        # When empty
-        self.assertEqual(self.q.qsize(), 0)
-
-        # When not empty
-        length = random.randint(1, 32)
-
-        for i in range(length):
-            self.q.conn.rpush(self.key, i)
-
-        self.assertEqual(self.q.qsize(), length)
-
-        # Uniqueness test
-        for i in range(length):
-            self.q.conn.rpush(self.key, i)
-
-        self.assertEqual(len(self.q), length * 2)
-
-    def test_empty(self):
-        # When empty
-        self.assertTrue(self.q.empty())
-
-        # When not empty
-        length = random.randint(1, 32)
-
-        for i in range(length):
-            self.q.conn.rpush(self.key, i)
-
-        self.assertFalse(self.q.empty())
-
-    def test_put(self):
-        val = unicode('tidehunter is going to eat you alive')
-        self.q.put(val)
-        self.assertEqual(unicode(nativestr(self.q.conn.lpop(self.key))),
-                         val)
-
-    def test_get(self):
-        # When empty
-        # self.assertIsNone(self.q.get())
-        self.assertEqual(self.q.get(), unicode())
-
-        # When not empty
-        val = unicode('tidehunter is going to eat you alive')
-        self.q.conn.rpush(self.key, val)
-        self.assertEqual(self.q.get(), val)
-
-    def test_put_nowait(self):
-        self.test_put()
-
-    def test_get_nowait(self):
-        self.test_get()
+    def test_unicode(self):
+        # todo
+        pass
 
     def tearDown(self):
-        self.q.conn.delete(self.key)
+        if sys.version_info[:2] > (2, 6):
+            super(TsCounterTest, self).tearDown()
+        else:
+            RedisHashBaseTest.tearDown(self)
+
+        keys = self.obj.conn.keys(self.key + ':*')
+        keys.append(self.key)
+
+        if len(keys) > 0:
+            self.obj.conn.delete(*keys)
+
+
+class StateCounterTest(RedisHashBaseTest):
+
+    def setUp(self):
+        self.key = random_key()
+        self.obj = StateCounter(self.key)
+
+    def test_initialize(self):
+        self.obj.initialize(total=50)
+        v = self.obj.conn.hget(self.key, 'total')
+        self.assertEqual(int(v), 0)
+
+        self.obj.conn.delete(self.key)
+        self.obj.initialize(total=50)
+        v = self.obj.conn.hget(self.key, 'total')
+        self.assertEqual(int(v), 50)
+
+    def test_json(self):
+        v = self.obj.json()
+        self.assertEqual(int(v.get('count')), 0)
+        self.assertEqual(int(v.get('state')), 1)
+        self.assertEqual(int(v.get('total')), 0)
+
+    def test_str(self):
+        v = json.loads(str(self.obj))
+        self.assertEqual(int(v.get('count')), 0)
+        self.assertEqual(int(v.get('state')), 1)
+        self.assertEqual(int(v.get('total')), 0)
+
+    def test_unicode(self):
+        v = json.loads(unicode(self.obj))
+        self.assertEqual(int(v.get('count')), 0)
+        self.assertEqual(int(v.get('state')), 1)
+        self.assertEqual(int(v.get('total')), 0)
+
+    def test_get_state(self):
+        self.assertEqual(self.obj.get_state(), 1)
+
+        self.obj.conn.hset(self.key, 'state', 0)
+        self.assertEqual(self.obj.get_state(), 0)
+
+    def test_get_count(self):
+        self.assertEqual(self.obj.get_count(), 0)
+
+        c = random.randint(1, 100)
+        self.obj.conn.hset(self.key, 'count', c)
+        self.assertEqual(self.obj.get_count(), c)
+
+    def test_get_total(self):
+        self.assertEqual(self.obj.get_total(), 0)
+
+        c = random.randint(1, 100)
+        self.obj.conn.hset(self.key, 'total', c)
+        self.assertEqual(self.obj.get_total(), c)
+
+    def test_start(self):
+        c = random.randint(1, 100)
+        self.obj.conn.hset(self.key, 'count', c)
+        self.obj.conn.hset(self.key, 'state', 0)
+
+        self.obj.start()
+        self.assertEqual(self.obj.get_state(), 1)
+        self.assertEqual(self.obj.get_count(), 0)
+        self.assertEqual(self.obj.get_total(), c)
+
+    def test_stop(self):
+        c = random.randint(1, 100)
+        self.obj.conn.hset(self.key, 'count', c)
+        self.obj.conn.hset(self.key, 'state', 1)
+
+        self.obj.stop()
+        self.assertEqual(self.obj.get_state(), 0)
+        self.assertEqual(self.obj.get_count(), 0)
+        self.assertEqual(self.obj.get_total(), c)
+
+    def test_incr(self):
+        self.assertEqual(self.obj.get_count(), 0)
+        self.obj.incr()
+        self.assertEqual(self.obj.get_count(), 1)
+
+    def test_started(self):
+        self.assertTrue(self.obj.started)
+        self.obj.stop()
+        self.assertFalse(self.obj.started)
+        self.obj.start()
+        self.assertTrue(self.obj.started)
+
+    def test_stopped(self):
+        self.assertFalse(self.obj.stopped)
+        self.obj.stop()
+        self.assertTrue(self.obj.stopped)
+        self.obj.start()
+        self.assertFalse(self.obj.stopped)
+
+
+class QueueTest(RedisBaseTest):
+
+    def setUp(self):
+        self.key = random_key()
+        self.obj = Queue(self.key)
+
+    def test_qsize(self):
+        self.assertEqual(self.obj.qsize(), 0)
+
+        s = random.randint(1, 32)
+        for i in xrange(s):
+            self.obj.put(i)
+
+        self.assertEqual(self.obj.qsize(), s)
+
+    def test_empty(self):
+        self.assertTrue(self.obj.empty())
+
+        self.obj.put(random.randint(1, 13))
+        self.assertFalse(self.obj.empty())
+
+        self.obj.get()
+        self.assertTrue(self.obj.empty())
+
+    def test_len(self):
+        self.assertEqual(len(self.obj), 0)
+
+        s = random.randint(1, 32)
+        for i in xrange(s):
+            self.obj.put(i)
+
+        self.assertEqual(len(self.obj), s)
+
+    def test_put(self):
+        a = random.randint(1, 32)
+        self.obj.put(a)
+        v = self.obj.get()
+        self.assertEqual(int(v), a)
+
+    def test_get(self):
+        self.assertEqual(self.obj.get(), unicode())
+
+        a = random.randint(1, 32)
+        self.obj.put(a)
+        v = self.obj.get()
+        self.assertEqual(int(v), a)
 
 
 class UniQueueTest(QueueTest):
 
     def setUp(self):
-        self.key = 'test_q'
-        self.q = UniQueue(key=self.key, host='localhost', port=6379, db=0)
-        self.q.conn.delete(self.key)
-
-    def test_clear(self):
-        # When empty
-        self.q.clear()
-        self.assertEquals(self.q.conn.llen(self.key), 0)
-
-        # After putting
-        self.q.conn.zadd(self.key, time.time(), 'test_val')
-        self.q.clear()
-        self.assertEquals(self.q.conn.llen(self.key), 0)
-
-    def test__len__(self):
-        # When empty
-        self.assertEqual(len(self.q), 0)
-
-        # When not empty
-        length = random.randint(1, 32)
-
-        for i in range(length):
-            self.q.conn.zadd(self.key, time.time(), i)
-
-        self.assertEqual(len(self.q), length)
-
-        # Uniqueness test
-        for i in range(length):
-            self.q.conn.zadd(self.key, time.time(), i)
-
-        self.assertEqual(len(self.q), length)
+        self.key = random_key()
+        self.obj = UniQueue(self.key)
 
     def test_qsize(self):
-        # When empty
-        self.assertEqual(self.q.qsize(), 0)
+        if sys.version_info[:2] > (2, 6):
+            super(UniQueueTest, self).test_qsize()
+        else:
+            QueueTest.test_qsize(self)
 
-        # When not empty
-        length = random.randint(1, 32)
+        self.obj.clear()
 
-        for i in range(length):
-            self.q.conn.zadd(self.key, time.time(), i)
+        s = random.randint(1, 32)
+        n = random.randint(2, 5)
+        for _ in xrange(n):
+            for i in xrange(s):
+                self.obj.put(i)
 
-        self.assertEqual(self.q.qsize(), length)
-
-        # Uniqueness test
-        for i in range(length):
-            self.q.conn.zadd(self.key, time.time(), i)
-
-        self.assertEqual(self.q.qsize(), length)
-
-    def test_empty(self):
-        # When empty
-        self.assertTrue(self.q.empty())
-
-        # When not empty
-        length = random.randint(1, 32)
-
-        for i in range(length):
-            self.q.conn.zadd(self.key, time.time(), i)
-
-        self.assertFalse(self.q.empty())
-
-    def test_get(self):
-        # When empty
-        self.assertEqual(self.q.get(), unicode())
-
-        # When not empty
-        val = unicode('tidehunter is going to eat you alive')
-        self.q.conn.zadd(self.key, time.time(), val)
-        self.assertEqual(self.q.get(), val)
-
-    def test_put(self):
-        val = unicode('tidehunter is going to eat you alive')
-        self.q.put(val)
-        self.assertEqual(
-            unicode(nativestr(self.q.conn.zrange(self.key, 0, 0)[0])),
-            val
-        )
-
-        # Uniqueness test
-        times = random.randint(3, 10)
-
-        for i in xrange(times):
-            self.q.put(val)
-
-        self.assertEqual(
-            unicode(nativestr(self.q.conn.zrange(self.key, 0, 0)[0])),
-            val
-        )
-        self.q.conn.zrem(self.key, val)
-        self.assertEqual(self.q.conn.zcard(self.key), 0)
-
-    def tearDown(self):
-        self.q.conn.delete(self.key)
+        self.assertEqual(self.obj.qsize(), s)
 
 
 class CountQueueTest(UniQueueTest):
 
     def setUp(self):
-        self.key = 'test_q'
-        self.q = CountQueue(key=self.key, host='localhost', port=6379, db=0)
-        self.q.conn.delete(self.key)
+        self.key = random_key()
+        self.obj = CountQueue(self.key)
 
     def test_get(self):
-        self.assertEqual(self.q.get(), ())
-        val = unicode('tidehunter is going to eat you alive')
-        self.q.conn.zincrby(self.key, val, 1)
-        actual = self.q.get()
-        self.assertEqual(actual, (val, 1))
+        self.assertEqual(self.obj.get(), ())
+
+        a = random.randint(1, 32)
+        n = random.randint(1, 5)
+        for _ in xrange(n):
+            self.obj.put(a)
+
+        v = self.obj.get()
+        self.assertEqual(v, (unicode(a), n))
 
     def test_put(self):
-        val = unicode('tidehunter is going to eat you alive')
-        self.q.put(val)
-        actual = self.q.conn.zrevrange(self.key, 0, 0, withscores=True,
-                                       score_cast_func=int)[0]
-        self.assertEqual(
-            (unicode(nativestr(actual[0])), actual[1]),
-            (val, 1)
-        )
-        self.q.conn.zrem(self.key, val)
-        self.assertEqual(self.q.conn.zcard(self.key), 0)
+        a = random.randint(1, 32)
+        n = random.randint(1, 5)
+        for _ in xrange(n):
+            self.obj.put(a)
 
-        # Uniqueness test
-        times = random.randint(3, 10)
-
-        for i in xrange(times):
-            self.q.put(val)
-
-        actual = self.q.conn.zrevrange(self.key, 0, 0, withscores=True,
-                                       score_cast_func=int)[0]
-        self.assertEqual(
-            (unicode(nativestr(actual[0])), actual[1]),
-            (val, times)
-        )
-        self.q.conn.zrem(self.key, val)
-        self.assertEqual(self.q.conn.zcard(self.key), 0)
+        v = self.obj.get()
+        self.assertEqual(v, (unicode(a), n))
 
 if __name__ == '__main__':
     unittest.main()
