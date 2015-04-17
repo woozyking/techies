@@ -16,7 +16,7 @@ __license__ = 'The MIT License (MIT)'
 __copyright__ = 'Runzhou Li (Leo)'
 
 from techies.landmines import (
-    Queue, UniQueue, CountQueue, StateCounter
+    Queue, UniQueue, CountQueue, MultiCounter, TsCounter, StateCounter
 )
 
 from techies.stasistrap import (
@@ -24,8 +24,8 @@ from techies.stasistrap import (
 )
 
 __all__ = [
-    'Queue', 'UniQueue', 'CountQueue', 'StateCounter',
-    'QueueHandler', 'REF_LOG_FORMAT'
+    'Queue', 'UniQueue', 'CountQueue', 'MultiCounter', 'TsCounter',
+    'StateCounter', 'QueueHandler', 'REF_LOG_FORMAT'
 ]
 
 # Set default logging handler to avoid "No handler found" warnings.
